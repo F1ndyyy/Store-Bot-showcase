@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Store Bot | Нативный магазин</title>
+    <style>
+        /* CSS Reset & Variables */
+        :root {
+            --bg: #070707;
+            --surface: #121212;
+            --surface-light: #1e1e1e;
+            --text: #ffffff;
+            --text-muted: #8e8e93;
+            --accent: #0a84ff;
+            --accent-hover: #0070e0;
+            --tg-bg: #000000;
+            --tg-bubble-bot: #212121;
+            --tg-bubble-user: #0a84ff;
+            --tg-btn: rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; font-size: 16px; }
+        img { max-width: 100%; display: block; border-radius: 8px; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Typography */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        h1 { font-size: clamp(40px, 6vw, 72px); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; margin-bottom: 24px; }
+        h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 24px; }
+        h3 { font-size: 24px; font-weight: 600; margin-bottom: 12px; }
+        p.lead { font-size: clamp(18px, 2vw, 24px); color: #a1a1a6; margin-bottom: 40px; font-weight: 400; max-width: 700px; line-height: 1.5; }
+        p.desc { font-size: 18px; color: #a1a1a6; margin-bottom: 24px; line-height: 1.6; }
+
+        /* Sections */
+        section { padding: 140px 0; border-bottom: 1px solid #1a1a1a; }
+        section:last-child { border-bottom: none; }
+        .section-darker { background-color: #0a0a0a; }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 18px 36px; background: #fff; color: #000; font-weight: 600; font-size: 17px; border-radius: 12px; transition: transform 0.2s, opacity 0.2s; cursor: pointer; }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn-outline { background: transparent; color: #fff; border: 1px solid #333; }
+        .btn-outline:hover { background: #111; border-color: #555; }
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+        .grid-story { display: grid; grid-template-columns: 1fr 1.5fr; gap: 60px; align-items: start; }
+        @media (max-width: 960px) { 
+            .grid-2, .grid-story { grid-template-columns: 1fr; gap: 48px; }
+            .order-last { order: -1; } 
+        }
+
+        /* Navigation */
+        nav { padding: 24px 0; position: sticky; top: 0; background: rgba(7,7,7,0.85); backdrop-filter: blur(16px); z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: 700; font-size: 20px; letter-spacing: -0.5px; }
+        .contact-btn { font-size: 15px; font-weight: 600; color: #fff; background: var(--accent); padding: 10px 20px; border-radius: 8px; transition: 0.2s; }
+        .contact-btn:hover { background: var(--accent-hover); }
+
+        /* Native Telegram Mockups */
+        .mockup-wrapper { position: relative; width: 100%; max-width: 380px; margin: 0 auto; perspective: 1000px; }
+        .phone-frame { background: var(--tg-bg); border: 10px solid #1a1a1a; border-radius: 48px; height: 750px; overflow: hidden; position: relative; box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 0 1px #333; display: flex; flex-direction: column; }
+        
+        .tg-header { background: #1c1c1d; padding: 50px 20px 16px; display: flex; align-items: center; border-bottom: 1px solid #2c2c2e; gap: 14px; z-index: 10; }
+        .tg-avatar { width: 42px; height: 42px; border-radius: 50%; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+        .tg-avatar.ai { background: #8e44ad; color: #fff; }
+        .tg-avatar.admin { background: #ff9500; color: #fff; }
+        .tg-title { font-weight: 600; font-size: 17px; line-height: 1.2; }
+        .tg-subtitle { color: var(--text-muted); font-size: 13px; }
+        
+        .tg-chat { flex: 1; padding: 20px 16px; background: var(--tg-bg); display: flex; flex-direction: column; gap: 16px; overflow-y: hidden; }
+        
+        .msg { max-width: 90%; display: flex; flex-direction: column; }
+        .msg.bot { align-self: flex-start; }
+        .msg.user { align-self: flex-end; }
+        
+        .bubble { padding: 12px 16px; font-size: 15px; line-height: 1.4; position: relative; }
+        .msg.bot .bubble { background: var(--tg-bubble-bot); color: #fff; border-radius: 18px 18px 18px 4px; }
+        .msg.user .bubble { background: var(--tg-bubble-user); color: #fff; border-radius: 18px 18px 4px 18px; }
+        
+        .bubble b { font-weight: 600; font-size: 16px; display: block; margin-bottom: 6px; }
+        .msg-time { font-size: 11px; color: rgba(255,255,255,0.5); text-align: right; margin-top: 4px; float: right; margin-left: 12px; }
+        
+        /* Inline Keyboards */
+        .inline-kbd { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 6px; }
+        .inline-row { display: flex; gap: 6px; }
+        .inline-btn { flex: 1; background: var(--tg-btn); color: #5eb5f7; padding: 14px 10px; border-radius: 12px; font-size: 15px; font-weight: 500; text-align: center; display: flex; justify-content: center; align-items: center; }
+        .inline-btn.active { background: #5eb5f7; color: #000; }
+        
+        /* Story Block */
+        .story-block { background: var(--surface); padding: 40px; border-radius: 24px; border: 1px solid var(--surface-light); }
+        
+        /* Highlight tags */
+        .tag { background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #ccc; margin-right: 8px; margin-bottom: 8px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container nav-inner">
+            <div class="logo">StoreBot by @lenaurs</div>
+            <a href="https://t.me/lenaurs" target="_blank" class="contact-btn">Связаться со мной</a>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section style="padding-top: 100px;">
+        <div class="container grid-2">
+            <div>
+                <div>
+                    <span class="tag">Zero Web Apps</span>
+                    <span class="tag">Встроенный ИИ</span>
+                    <span class="tag">Автоматизация 100%</span>
+                </div>
+                <h1>Магазин,<br>каким он должен быть.</h1>
+                <p class="lead">Никаких костылей, долгих загрузок и переходов по ссылкам. Я создала бота, который продает, принимает заказы, консультирует через ИИ и ведет учет, используя только чистый, быстрый и родной интерфейс Telegram.</p>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <a href="https://t.me/lenaurs" target="_blank" class="btn">Заказать такого же</a>
+                    <a href="#philosophy" class="btn btn-outline">Почему он лучший?</a>
+                </div>
+            </div>
+            
+            <div class="mockup-wrapper">
+                <div class="phone-frame">
+                    <div class="tg-header">
+                        <div class="tg-avatar">B</div>
+                        <div>
+                            <div class="tg-title">Brand Store</div>
+                            <div class="tg-subtitle">bot</div>
+                        </div>
+                    </div>
+                    <div class="tg-chat">
+                        <div class="msg bot">
+                            <div class="bubble">
+                                Добро пожаловать! 🖤<br><br>Здесь вы можете выбрать одежду, проверить наличие своего размера и оформить заказ.<br><br>Выберите категорию:
+                                <span class="msg-time">14:02</span>
+                            </div>
+                            <div class="inline-kbd">
+                                <div class="inline-row">
+                                    <div class="inline-btn">👕 Футболки</div>
+                                    <div class="inline-btn">🧥 Худи</div>
+                                </div>
+                                <div class="inline-row">
+                                    <div class="inline-btn">👖 Брюки</div>
+                                    <div class="inline-btn">🎒 Аксессуары</div>
+                                </div>
+                                <div class="inline-btn" style="color: #fff;">🛒 Моя корзина (2)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="msg user" style="margin-top: 10px;">
+                            <div class="bubble">
+                                🧥 Худи
+                                <span class="msg-time">14:03</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PHILOSOPHY / THE "SON" SECTION -->
+    <section id="philosophy" class="section-darker">
+        <div class="container grid-story">
+            <div>
+                <h2>Я горжусь этим проектом, как собственным сыном.</h2>
+                <p class="desc">Многие разработчики сегодня ленятся. Они вставляют в бота Web App (по сути, обычный сайт) и называют это «Telegram-магазином». Это медленно, это ломает привычный опыт мессенджера, и это не то, за что пользователи любят Telegram.</p>
+                <p class="desc"><b>Мой бот — другой.</b> Он вырос из идеи сделать идеального продавца. Он общается с клиентом нативно, не заставляет ждать загрузки скриптов и использует только родные кнопки Telegram.</p>
+                
+                <h3 style="margin-top: 32px; font-size: 22px;">Масштаб и статус бренда</h3>
+                <p class="desc">Бот <b>полностью заменяет ручные переписки с менеджером по продажам</b>. Никаких «подождите, сейчас проверю наличие» или ошибок человеческого фактора. Время на оформление заказа сокращается с часов до одной минуты.</p>
+                <p class="desc">Для клиента это выглядит дорого. Автоматизация сразу внушает покупателю масштаб: ваш бренд воспринимается как крупный, серьезный и профессиональный бизнес, а не локальная инста-страничка.</p>
+            </div>
+            <div class="story-block">
+                <h3>Что он умеет делать сам?</h3>
+                <ul style="list-style: none; margin-top: 20px;">
+                    <li style="margin-bottom: 16px; display: flex; gap: 12px;">
+                        <span style="font-size: 24px;">🧠</span>
+                        <div><b>ИИ-консультации:</b> Сам отвечает на неформальные вопросы и подбирает вещи.</div>
+                    </li>
+                    <li style="margin-bottom: 16px; display: flex; gap: 12px;">
+                        <span style="font-size: 24px;">📦</span>
+                        <div><b>Контролировать склад:</b> Если осталась одна футболка размера M, и её купили — кнопка размера M мгновенно исчезает для всех.</div>
+                    </li>
+                    <li style="margin-bottom: 16px; display: flex; gap: 12px;">
+                        <span style="font-size: 24px;">📝</span>
+                        <div><b>Собирать заказы:</b> Без форм и сайтов. В формате диалога берет имя, телефон и адрес доставки.</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURE 1: AI ASSISTANT -->
+    <section>
+        <div class="container grid-2">
+            <div class="mockup-wrapper">
+                <div class="phone-frame">
+                    <div class="tg-header">
+                        <div class="tg-avatar ai">AI</div>
+                        <div>
+                            <div class="tg-title">Brand Store</div>
+                            <div class="tg-subtitle">Ассистент печатает...</div>
+                        </div>
+                    </div>
+                    <div class="tg-chat">
+                        <div class="msg user">
+                            <div class="bubble">
+                                Слушай, а эта худи черная сильно садится после стирки? И есть ли на меня размер L?
+                                <span class="msg-time">15:30</span>
+                            </div>
+                        </div>
+                        
+                        <div class="msg bot" style="margin-top: 10px;">
+                            <div class="bubble" style="border-left: 3px solid #8e44ad;">
+                                Привет! 🖤<br><br>Худи выполнена из предварительно усаженного плотного хлопка (450г/м²), поэтому после стирки она не потеряет свою форму и не сядет.<br><br>Размер L сейчас есть в наличии (осталось 2 штуки). Отложить для тебя?
+                                <span class="msg-time">15:30</span>
+                            </div>
+                            <div class="inline-kbd">
+                                <div class="inline-row">
+                                    <div class="inline-btn" style="background: var(--accent); color: #fff;">Добавить L в корзину</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h2>Встроенный ИИ-менеджер</h2>
+                <p class="desc">Больше не нужно держать менеджера, который 24/7 отвечает на одни и те же вопросы. В бота встроен искусственный интеллект, предварительно обученный на данных вашего бренда.</p>
+                <p class="desc"><b>Понимает контекст и проверяет склад:</b> ИИ общается живым языком. Если клиент спрашивает про состав ткани, посадку или наличие конкретного размера — ИИ мгновенно обращается к базе данных, проверяет реальные остатки и дает точный ответ, заботливо предлагая кнопку для покупки.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURE 2: NATIVE CATALOG & CHECKOUT -->
+    <section class="section-darker">
+        <div class="container grid-2">
+            <div class="order-last">
+                <h2>Оформление заказа без менеджера</h2>
+                <p class="desc">Забудьте про мини-сайты. Бот присылает сочные фотографии товаров прямо в чат. Клиент выбирает размер (бот показывает только то, что есть в наличии) и добавляет вещь в корзину.</p>
+                <p class="desc">Оформление идет в формате диалога. Никаких длинных анкет. Бот ведет клиента за ручку, уточняя детали доставки и номер телефона. Это повышает конверсию, исключает ошибки при копировании данных и занимает ровно одну минуту.</p>
+            </div>
+            
+            <div class="mockup-wrapper">
+                <div class="phone-frame">
+                    <div class="tg-header">
+                        <div class="tg-avatar">B</div>
+                        <div>
+                            <div class="tg-title">Brand Store</div>
+                            <div class="tg-subtitle">bot</div>
+                        </div>
+                    </div>
+                    <div class="tg-chat">
+                        <div class="msg bot">
+                            <div class="bubble" style="padding: 4px;">
+                                <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=600&q=80" alt="Hoodie" style="border-radius: 14px 14px 4px 4px;">
+                                <div style="padding: 12px;">
+                                    <b>Oversized Hoodie Black</b>
+                                    Цена: <b>4 500 ₽</b>
+                                    <span class="msg-time">14:05</span>
+                                </div>
+                            </div>
+                            <div class="inline-kbd">
+                                <div class="inline-row">
+                                    <div class="inline-btn">S (2)</div>
+                                    <div class="inline-btn active">M (5)</div>
+                                    <div class="inline-btn" style="opacity: 0.5;">L (0)</div>
+                                </div>
+                                <div class="inline-btn" style="background: var(--accent); color: #fff;">Добавить в корзину</div>
+                            </div>
+                        </div>
+
+                        <div class="msg bot" style="margin-top: 15px;">
+                            <div class="bubble">
+                                Отлично! Как вы хотите получить заказ?
+                                <span class="msg-time">14:10</span>
+                            </div>
+                            <div class="inline-kbd">
+                                <div class="inline-row">
+                                    <div class="inline-btn">📦 СДЭК</div>
+                                    <div class="inline-btn">🏃 Самовывоз</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURE 3: ADMIN & CHANNEL -->
+    <section>
+        <div class="container grid-2">
+            <div class="mockup-wrapper">
+                <div class="phone-frame">
+                    <div class="tg-header">
+                        <div class="tg-avatar admin">⚙️</div>
+                        <div>
+                            <div class="tg-title">Панель управления</div>
+                            <div class="tg-subtitle">bot</div>
+                        </div>
+                    </div>
+                    <div class="tg-chat">
+                        <div class="msg bot">
+                            <div class="bubble" style="border-left: 4px solid #4cd964;">
+                                🟢 <b>Новый заказ #1042!</b><br><br>
+                                <b>Клиент:</b> @lenaurs<br>
+                                <b>Доставка:</b> СДЭК (г. Москва, ул. Ленина 1)<br>
+                                <b>Сумма:</b> 6 400 ₽<br><br>
+                                <b>Товары:</b><br>
+                                - Hoodie Black (M) x1
+                                <span class="msg-time">14:15</span>
+                            </div>
+                            <div class="inline-kbd">
+                                <div class="inline-row">
+                                    <div class="inline-btn">Взять в работу</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="msg bot" style="margin-top: 20px;">
+                            <div class="bubble">
+                                <b>Автопубликация</b><br>
+                                Товар успешно добавлен в базу. Опубликовать пост в Telegram-канал бренда?
+                                <span class="msg-time">14:20</span>
+                            </div>
+                            <div class="inline-kbd">
+                                <div class="inline-btn" style="background: var(--accent); color: #fff;">Опубликовать в канал</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2>Админка и автопостинг</h2>
+                <p class="desc">Вся операционная работа ведется прямо с телефона, сидя в кафе или такси.</p>
+                <div style="margin-top: 32px;">
+                    <h3>Управление заказами</h3>
+                    <p class="desc" style="font-size: 16px;">Пришел заказ? Вы тут же получаете уведомление. Нажали кнопку «Взять в работу» — и клиенту автоматически улетело сообщение, что его посылка собирается.</p>
+                </div>
+                <div style="margin-top: 24px;">
+                    <h3>Автопубликация в канал</h3>
+                    <p class="desc" style="font-size: 16px;">Добавили новинку в каталог? Бот сам соберет красивый пост с фотографией, ценой и кнопкой «Купить», и отправит его в ваш Telegram-канал. Вы генерируете контент и продажи одновременно.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA SECTION -->
+    <section class="section-darker" style="text-align: center; padding: 120px 20px;">
+        <div class="container">
+            <h2 style="font-size: clamp(36px, 5vw, 56px); margin-bottom: 24px;">Хватит терять клиентов в долгих переписках.</h2>
+            <p class="lead" style="margin: 0 auto 48px;">Давайте запустим для вашего бренда идеального ИИ-продавца, который масштабирует бизнес, работает 24/7 и выглядит премиально.</p>
+            <a href="https://t.me/lenaurs" target="_blank" class="btn" style="font-size: 20px; padding: 24px 48px; background: var(--accent); color: #fff;">
+                Обсудить проект со мной
+            </a>
+            <p style="color: #666; margin-top: 20px; font-size: 16px;">Telegram: @lenaurs</p>
+        </div>
+    </section>
+
+</body>
+</html>
